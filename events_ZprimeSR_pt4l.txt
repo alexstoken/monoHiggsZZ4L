@@ -1,0 +1,10 @@
+File							Variable	Entries		UpperLimit 
+histos/histos_data.root					SR_pt4l		184.0
+histos/histos_SM.root					SR_pt4l		367274.0
+histos/histos_Zprime_MZp00600_MA00300.root		SR_pt4l		16072.0		6.741
+histos/histos_Zprime_MZp00800_MA00300.root		SR_pt4l		17069.0		6.06
+histos/histos_Zprime_MZp01000_MA00300.root		SR_pt4l		15017.0		12.481
+histos/histos_Zprime_MZp01200_MA00300.root		SR_pt4l		13161.0		26.306
+histos/histos_Zprime_MZp01400_MA00300.root		SR_pt4l		11844.0		54.828
+histos/histos_Zprime_MZp01700_MA00300.root		SR_pt4l		9837.0		198.67
+histos/histos_Zprime_MZp02000_MA00300.root		SR_pt4l		8788.0		264.906
