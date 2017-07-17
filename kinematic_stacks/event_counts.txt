@@ -1,0 +1,23 @@
+Bkg/ Signal Type	# of Entries 
+data_2016			1438
+TTT			48
+TTV			12255
+VVV			1818
+WZ			129
+WW			0
+Zplusjets			18
+ttbar			48
+WH			58873
+ZH			67706
+VBF			71628
+ttH			40731
+ggH			130543
+mzChi1			134858
+ZZ			147469
+ggToZZ			1435768
+mz600			16306
+mz800			17618
+mz1			16219
+mz12			14794
+mz14			13442
+mz17			11260

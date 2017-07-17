@@ -70,8 +70,7 @@ def getPerBin(stack, num_rebin):
 
 def main():
 
-#-------------------------------------------------------STEP 0: set variable properties for plots------------------------------------------------------------------------------------
-
+#---------------------------------------------------------------------------STEP 0: set variable properties for plots--------------------------------------------------
     sleep_time = 5
     log_setY = 1        #1 for log, 0 for nonlog plot
     log_setX = 0
@@ -83,11 +82,13 @@ def main():
     yield_file_name = "event_counts.txt"
     data_set_info = "#sqrt{s} = 13 TeV, L = 35.867 fb^{-1}" 
     cms_prelim_txt = "#font[22]{CMS} #font[12]{Preliminary}"
+    Right_margin = .2
+    Left_margin = .072
     
 
 
     
-#-------------------------------------------------------STEP 1: create TChains for the different typed of background and signal we will be plotting, pick variables to plot ----------------------------
+#--------------------------------------STEP 1: create TChains for the different typed of background and signal we will be plotting, pick variables to plot ----------------------------
 
     #create a list of the different variables you want to plot (see muAnalysis to see which variables have been filled)
 
@@ -136,7 +137,7 @@ def main():
     #set up file to track event yields, open in write+ mode to rewrite previous yield file 
     cmd_newYieldfile = "num_events = open(\"%s\", \"w+\")" %(yield_file_name)
     exec(cmd_newYieldfile)
-    num_events.write("Bkg/ Signal Type\t\t# of Entries \n")
+    num_events.write("Bkg/ Signal Type\t# of Entries \n")
     num_events.close()
 
 
@@ -152,21 +153,21 @@ def main():
         exec(cmd_newChain)
         exec(cmd_addChain)
         exec(cmd_run)
-#----------------------------------------------------------------STEP 2: Count the events in each physics object for each plot, print out to a file -------------------------------------------------
+#-----------------------------------------------------STEP 2: Count the events in each physics object for each plot, print out to a file ------------------------------
         
 
         #Move to working in the file in append mode, so you just add a line for each chain
         cmd_openYield_append = "num_events = open(\"%s\", \"a\")" %(yield_file_name)
         exec(cmd_openYield_append)
         entries = eval("%s.GetEntries()" %chain)
-        num_events.write("%s\t\t%s\n" % (chain, str(entries)))
+        num_events.write("%s\t\t\t%s\n" % (chain, str(entries)))
         
         
         #print "Number of files in" + chain + " chain = " + str(x)       OPTIONAL STATEMENT TO PRINT THE NUMBER OF FILES ADDED TO THE CHAIN
 
  
         
-#-------------------------------------------------------STEP 3: retrieve all histograms created by makeClass and put them in one file with hadd-------------------------------------
+#---------------------------------------------STEP 3: retrieve all histograms created by makeClass and put them in one file with hadd-------------------------------------
 
     #now, after the run function has been called (line 90), a variaty of historgrams have been made by the makeClass muAnalysis.C
     #The histograms are in files of the type "<<physics object>>_histos.root, and these files contain histograms named in the format <<physics object>>_<<variable>>
@@ -190,7 +191,7 @@ def main():
         
 
 
- #-----------------------------------------------------------------------------STEP 4: Style the histograms individually--------------------------------------------------------------------------
+ #-----------------------------------------------------------------------------STEP 4: Style the histograms individually----------------------------------------
 
     #loop over all the chains of histos created
     for chain, file_, color, title in chain_list:
@@ -251,13 +252,32 @@ def main():
 
     #loop over each variable you want to plot, so that a stack can be made for each variable independently
     for variable, nrebin, axis, unit, y_min in variable_list:
-        #create a canvas to plot all the variable info 
-        c = TCanvas()
-       
+        #create a canvas for plotting
+        #since we want a kinetic histo and a ratio plot, make 2 pads
+        c = TCanvas("c", "c", 800, 900)
+        histoPad = TPad("histoPad", "histoPad", 0, .25, 1, 1) #name, title, x low, y low, x high, y high
+        ratioPad = TPad("ratioPad", "ratioPad", 0, .05, 1, .25)
 
+        #set left and right margins of the pads so that the legend will fit properly (MUST DO FOR EACH PAD)
+        """
+        maybe make a for loop over all the pads in canvas to do this better
+        """
+        histoPad.SetRightMargin(Right_margin)
+        histoPad.SetLeftMargin(Left_margin)
+
+        ratioPad.SetTopMargin(0.05)
+        ratioPad.SetRightMargin(Right_margin)
+        ratioPad.SetLeftMargin(Left_margin)
+        #ratioPad.SetBottomMargin(.01)
+
+        histoPad.Draw()
+        ratioPad.Draw()
+
+        #we want to draw the histogram and all associated objects to histoPad, so make sure you are in the right pad
+        histoPad.cd()
+
+        
         #initialize legend here so that you can add entries to it as you add entries to the canvas
-        c.SetRightMargin(.2)
-        c.SetLeftMargin(.072)
         legend = TLegend(.801, .1, .999, .9 ,"","brNDC")  #.901, .1, .999, .9  or 0.62,0.5,.87,.88,
        
 
@@ -266,12 +286,13 @@ def main():
         exec(cmd_stack)
 
 
-        all_histos.cd()
+        
        
         #check for rebin request and complete if necessary
         if nrebin != 0:
             for hist_name in h_list:
                 if hist_name.find(variable) != -1:
+                    all_histos.cd()
                     h = all_histos.Get(hist_name)
                     h.Rebin(nrebin)
                    
@@ -315,10 +336,10 @@ def main():
 
      
         #must draw stacks to the canvas before the models and data are drawn
-        c.cd()             
+        histoPad.cd()
         cmd_drawS = "%s_stack.Draw(\"%s\")" %(variable, stack_draw_options)   #use option hist in Drraw() to draw in histogram mode 
         exec(cmd_drawS)
-        
+
         #for loop to draw the data and models to the same canvas as the THStack
         for hist_name in h_list:
             if hist_name.find(variable) != -1:
@@ -362,9 +383,9 @@ def main():
                          
 
 
-
+       
         #set axis titles
-        cmd_Xaxis = "%s_stack.GetXaxis().SetTitle(\"%s\")" % (variable, axis)
+        cmd_Xaxis = "%s_stack.GetXaxis().SetTitle(\"%s (%s)\")" % (variable, axis, unit)
         exec(cmd_Xaxis)
         
         events_per_bin = eval("getPerBin(%s, nrebin)" % (variable+ "_stack"))
@@ -384,20 +405,54 @@ def main():
             cmd_setYmin = "%s_stack.SetMinimum(%s)" %(variable, str(y_min))
             exec(cmd_setYmin)
 
+
 #----------------------------------------------------------------STEP 6: Make ratio plots of Data/MC ----------------------------------------------------------------
 
+        #move into working in the ratio pad
+        ratioPad.cd()
+        ratioPad.SetTicks(1,1)
+        
 
+        
+        all_histos.cd()
+        cmd_getHdata = "h_data = all_histos.Get(\"data_2016_%s\")" %variable
+        exec(cmd_getHdata)
 
-            
-#----------------------------------------------------------------STEP 7: Format the canvas (create legend, text, etc), save to file --------------------------------------------------
+        hSum_xmin = h_data.GetXaxis().GetXmin()
+        hSum_xmax = h_data.GetXaxis().GetXmax()
+        hSum_bins = h_data.GetNbinsX()
+        
+        h_sum= TH1F("h_sum ", "h_sum ", hSum_bins, hSum_xmin, hSum_xmax)
+        cmd_merge = "h_sum.Merge(%s_stack.GetHists())"%variable
+        exec(cmd_merge)
 
-        #change back to working with the canvas
-        c.cd()
+        h_ratio = h_data.Clone()
+        
+        h_ratio.Divide(h_sum)
+        h_ratio.SetMarkerStyle(20)
+        h_ratio.SetMarkerColor(kBlack)
+        h_ratio.SetStats(0)
+        h_ratio.SetMaximum(4)
+        h_ratio.GetXaxis().SetTitleOffset(.2)
+        h_ratio.GetYaxis().SetTitleOffset(.2)
+        h_ratio.GetXaxis().SetLabelSize(.07)
+        h_ratio.GetYaxis().SetLabelSize(.07)
+        h_ratio.GetXaxis().SetTitleSize(.13)
+        h_ratio.GetYaxis().SetTitleSize(.15)
+        h_ratio.SetTitle("; ; Data/MC")
+        h_ratio.Draw(data_draw_options)
+
+        h_sum.Delete()
+
+#----------------------------------------------------------------STEP 7: Format the canvas and pads (create legend, text, etc), save to file ---------------------------
+
+        #change back to working with the histoPad 
+        histoPad.cd()
         
         #set canvas to log scale on the Y axis and set useful tick markings
-        c.SetLogy(log_setY)
-        c.SetLogx(log_setX)
-        c.SetTicks(1,1)
+        histoPad.SetLogy(log_setY)
+        histoPad.SetLogx(log_setX)
+        histoPad.SetTicks(1,1)
  
         #add the text information to the canvas, such as experiement information (L_int, sqrt(s), CMS, etc)
         cms_name = TPaveText(0.08, 0.902, 0.80, 0.95, "NDC")
