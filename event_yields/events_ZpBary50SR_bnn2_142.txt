@@ -1,0 +1,28 @@
+File							Variable	Entries			UpperLimit		Num of Limits
+histos/histos_data.root					SR_bnn2		143.0
+histos/histos_SM.root					SR_bnn2		323592.0
+histos/histos_ZpBary_MZp00050_MA00050.root		SR_bnn2		6197.0			1493.049			1
+histos/histos_ZpBary_MZp00095_MA00050.root		SR_bnn2		6104.0			104.778			2
+histos/histos_ZpBary_MZp00200_MA00050.root		SR_bnn2		6516.0			8.868			3
+histos/histos_ZpBary_MZp00300_MA00050.root		SR_bnn2		6444.0			9.495			4
+
+
+
+The following are the values of mu:
+Mass Z':	['00050', '00095', '00200', '00300']
+Observed Limit:	[ 1493.049   104.778     8.868     9.495]
+Expected Limit:	[ 3043.295   172.855    14.487    15.261]
+-2sigma:	[ 1706.933   103.086     8.332     8.719]
+-sigma:		[ 2168.616   134.193    10.878    11.418]
++sigma:		[ 4206.942   257.193    21.325    22.984]
++2sigma:	[ 5339.6     324.874    27.211    28.875]
+
+
+The following are the values of the upper limit
+Mass Z':	['00050', '00095', '00200', '00300']
+Observed Limit:	[ 2.94384244  5.33799325  5.09354573  5.0749692 ]
+Expected Limit:	[ 6.00046011  8.80622672  8.32095139  8.15683043]
+-2sigma:	[ 3.3655572   5.25179305  4.78568144  4.66020605]
+-sigma:		[ 4.27585686  6.83656233  6.24803681  6.10279076]
++sigma:		[  8.29482113  13.10288895  12.24851856  12.28468584]
++2sigma:	[ 10.52808118  16.5509479   15.629282    15.43335814]

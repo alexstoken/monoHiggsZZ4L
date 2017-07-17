@@ -50,10 +50,10 @@ def main():
 
 
     if args.scale_factor:
-        scale_factor = args.scale_factor
+        scale_f = float(args.scale_factor)
         
     else:
-        scale_factor = 1
+        scale_f = 1.
 
 
     #now we want to grab all the files matching the argument characteristics
@@ -82,9 +82,9 @@ def main():
 
   
     bin_num = 200                            #ok to be large, since if there are less bins the program will use the lesser value
-    obs_file = "histos/histos_data.root"
+    obs_file = "histos/histos_data.root"     #insert your data histogram
     sample_num = 1
-    bkg_file = "histos/histos_SM.root"
+    bkg_file = "histos/histos_SM.root"       #insert your background, SM for DM finding, Higgs for VBF finding
     logY = 1
     y_max = 1e5
     y_min = 1e-4
@@ -103,10 +103,11 @@ def main():
     #just to be sure that computeLimits.py will work, we will source setup.sh
     os.system("source setup.sh")  
 
-
-    cmd_openFile = "event_file = open(\"events_%s%s.txt\", \"w+\")" %(model,limit_var)
+    scale_str = str(scale_f)
+    scale_str = scale_str.replace(".", "")
+    cmd_openFile = "event_file = open(\"events_%s%s%s_%s.txt\", \"w+\")" %(model,args.mass_MA,limit_var, scale_str)
     exec(cmd_openFile)
-    event_file.write("File\t\t\t\t\t\t\tVariable\tEntries\t\tUpperLimit \n")
+    event_file.write("File\t\t\t\t\t\t\tVariable\tEntries\t\t\tUpperLimit\t\tNum of Limits\n")
     for file_ in [obs_file, bkg_file]:
             
             f = TFile.Open(file_)
@@ -116,6 +117,8 @@ def main():
 
     event_file.close()
     iter_list_of_limits = copy(list_of_limits)
+
+   
     
     #make a config file for each limit requested in list_of_limits
     for mass in iter_list_of_limits:
@@ -125,60 +128,185 @@ def main():
             for fname in fileList:
                 if fnmatch.fnmatch(fname, "histos*") and fnmatch.fnmatch(fname, '*'+model+'*') and fnmatch.fnmatch(fname, '*MZp'+mass+'*') and fnmatch.fnmatch(fname, mass_MA):
                     signal_file = fname
-                  
-        filename = model + mass + "_" +args.mass_MA
-        cfg_filename = filename + ".cfg"
-        cmd_newFile = "cfg_file = open(\"%s\", \"w+\")" %cfg_filename
-        exec(cmd_newFile)
-        cfg_file.write(
-        "#bin_num \n%s \n#obs_count \n%s %s \n#sample_num \n%s \n#signal \nhistos/%s %s %s\n#bkg \n%s %s" % (str(bin_num), obs_file, limit_var, str(sample_num), signal_file, limit_var, str(scale_factor), bkg_file, limit_var))
-        cfg_file.close()
 
 
+        if scale_f != 1 and limit_var == "SR_met":
 
+            #adjust signal
+            cmd_getFile = "sig_file = TFile(\'histos/%s\', \"READ\")" %signal_file
+            exec(cmd_getFile)
+            cmd_getHist = "h = sig_file.Get(\'%s\')" % (limit_var)
+            exec(cmd_getHist)
+
+            #adjust background
+            cmd_getFile = "bkg_adjust = TFile(\'%s\', \"READ\")" %bkg_file
+            exec(cmd_getFile)
+            cmd_getHist = "h2 = bkg_adjust.Get(\'%s\')" % (limit_var)
+            exec(cmd_getHist)
+            
+         
+            
+            h_up = h.Clone("h_up")
+            h_down = h.Clone("h_down")
+            h_up.Scale(scale_f)
+            h_down.Scale(1/scale_f)
+
+            h2_up = h2.Clone("h2_up")
+            h2_down = h2.Clone("h2_down")
+            h2_up.Scale( scale_f)
+            h2_down.Scale(1/scale_f)
+
+            scaled_hists = TFile("histos/scaled_hists.root", "RECREATE")
+            h_up.Write()
+            h_down.Write()
+            h2_up.Write()
+            h2_down.Write()
+            scaled_hists.Close()
+
+
+            
+            filename_up = "up" + model + mass + "_" +args.mass_MA 
+            filename_down = "down" + model + mass + "_" +args.mass_MA
+            
+            cfg_filename_up = filename_up + ".cfg"
+            cfg_filename_down = filename_down + ".cfg"
+
+            cmd_newFile_up = "cfg_file_up = open(\"%s\", \"w+\")" %cfg_filename_up
+            exec(cmd_newFile_up)
+
+            cfg_file_up.write(
+            "#bin_num \n%s \n#obs_count \n%s %s \n#sample_num \n%s \n#signal \nhistos/scaled_hists.root h_up \n#bkg \nhistos/scaled_hists.root h2_up" % (str(bin_num), obs_file, limit_var, str(sample_num)))
+
+            cfg_file_up.close()
+
+            cmd_newFile_down = "cfg_file_down = open(\"%s\", \"w+\")" %cfg_filename_down
+            exec(cmd_newFile_down)
+
+            cfg_file_down.write(
+            "#bin_num \n%s \n#obs_count \n%s %s \n#sample_num \n%s \n#signal \nhistos/scaled_hists.root h_down \n#bkg \nhistos/scaled_hists.root h2_down" % (str(bin_num), obs_file, limit_var, str(sample_num)))
+
+            cfg_file_down.close()
+
+         
+
+            cmd_runcompLim_up = "auto_computeLimit.py %s" %cfg_filename_up
+            os.system(cmd_runcompLim_up)
+
+            cmd_runcompLim_down = "auto_computeLimit.py %s" %cfg_filename_down
+            os.system(cmd_runcompLim_down)
+
+
+            results_name_up = "auto_%s.txt" %(filename_up)
+            results_name_down = "auto_%s.txt" %(filename_down)
+
+            if os.stat(results_name_up).st_size == 0 and os.stat(results_name_down).st_size == 0:
+                
+                list_of_limits.remove(mass)
+
+            else:
+                with open(results_name_up) as f:
+                    results_data = f.read().splitlines()
+                    
+                results_data = map(atof, results_data)
+        
+ 
+                mZ_up = np.append(mZ, float(mass))
+                obs_limit_up = np.append(obs_limit, results_data[0])
+                minus_2sig_up = np.append(minus_2sig, results_data[1])
+                minus_sig_up = np.append(minus_sig, results_data[2])
+                expect_limit_up = np.append(expect_limit, results_data[3])
+                plus_sig_up = np.append(plus_sig, results_data[4])
+                plus_2sig_up = np.append(plus_2sig, results_data[5])
+
+                with open(results_name_down) as f:
+                    results_data = f.read().splitlines()
+                    
+                results_data = map(atof, results_data)
+        
+ 
+                mZ_down = np.append(mZ, float(mass))
+                obs_limit_down = np.append(obs_limit, results_data[0])
+                minus_2sig_down = np.append(minus_2sig, results_data[1])
+                minus_sig_down = np.append(minus_sig, results_data[2])
+                expect_limit_down = np.append(expect_limit, results_data[3])
+                plus_sig_down = np.append(plus_sig, results_data[4])
+                plus_2sig_down = np.append(plus_2sig, results_data[5])
+
+
+                mZ = (mZ_up + mZ_down) / 2
+                obs_limit = (obs_limit_up + obs_limit_down) / 2
+                minus_2sig = (minus_2sig_up +  minus_2sig_down) / 2
+                minus_sig = (minus_sig_up + minus_sig_down) / 2
+                expect_limit = (expect_limit_up + expect_limit_down) / 2
+                plus_sig =(plus_sig_up + plus_sig_down) / 2
+                plus_2sig = (plus_2sig_up + plus_2sig_down) / 2
+
+                f = TFile.Open("histos/"+signal_file)
+                h = f.Get(limit_var)
+                entries = h.GetEntries()
+                cmd_append = "event_file = open(\"events_%s%s%s_%s.txt\", \"a\")" %(model,args.mass_MA, limit_var, scale_str)
+                exec(cmd_append)
+                event_file.write("%s\t\t%s\t\t%s\t\t\t%s\t\t\t%s\n" %(f.GetName(), limit_var, entries,str(results_data[0]), len(mZ)))
+                                     
+                event_file.close()
+
+
+            cmd_rmAuto = "rm -f auto_*.txt"
+            os.system(cmd_rmAuto)
+            
+        else:          
+            filename = model + mass + "_" +args.mass_MA
+            cfg_filename = filename + ".cfg"
+            cmd_newFile = "cfg_file = open(\"%s\", \"w+\")" %cfg_filename
+            exec(cmd_newFile)
+            cfg_file.write(
+            "#bin_num \n%s \n#obs_count \n%s %s \n#sample_num \n%s \n#signal \nhistos/%s %s %s\n#bkg \n%s %s" % (str(bin_num), obs_file, limit_var, str(sample_num), signal_file, limit_var, str(scale_f), bkg_file, limit_var))
+            cfg_file.close()
+
+
+        
 
 #--------------------------------------STEP 2: call computeLimits.py on all configuration files ----------------------------------------------------------------------
 
-
-      
-
-        #os.system("mv results/%s .." % (model+"cfg"))
-        cmd_runcompLim = "auto_computeLimit.py %s" %cfg_filename
-        os.system(cmd_runcompLim)
+            cmd_runcompLim = "auto_computeLimit.py %s" %cfg_filename
+            os.system(cmd_runcompLim)
 
     
 #-------------------------------------STEP 3: take data from .txt file (output from computeLimits.py) and add it to numpy arrays for use ------------------------------------------
 
 
-        results_name = "auto_%s.txt" %(filename)
-
-        if os.stat(results_name).st_size == 0:
+            results_name = "auto_%s.txt" %(filename)
             
-            list_of_limits.remove(mass)
-            
-        else:
-            with open(results_name) as f:
-                results_data = f.read().splitlines()
+            if os.stat(results_name).st_size == 0:
                 
-            results_data = map(atof, results_data)
+                list_of_limits.remove(mass)
+            
+            else:
+                with open(results_name) as f:
+                    results_data = f.read().splitlines()
+                
+                results_data = map(atof, results_data)
         
  
-            mZ = np.append(mZ, float(mass))
-            obs_limit = np.append(obs_limit, results_data[0])
-            minus_2sig = np.append(minus_2sig, results_data[1])
-            minus_sig = np.append(minus_sig, results_data[2])
-            expect_limit = np.append(expect_limit, results_data[3])
-            plus_sig = np.append(plus_sig, results_data[4])
-            plus_2sig = np.append(plus_2sig, results_data[5])
-            
-            f = TFile.Open("histos/"+signal_file)
-            h = f.Get(limit_var)
-            entries = h.GetEntries()
-            cmd_append = "event_file = open(\"events_%s%s.txt\", \"a\")" %(model,limit_var)
-            exec(cmd_append)
-            event_file.write("%s\t\t%s\t\t%s\t\t%s\n" %(f.GetName(), limit_var, entries,str(results_data[0])))
+                mZ = np.append(mZ, float(mass))
+                obs_limit = np.append(obs_limit, results_data[0])
+                minus_2sig = np.append(minus_2sig, results_data[1])
+                minus_sig = np.append(minus_sig, results_data[2])
+                expect_limit = np.append(expect_limit, results_data[3])
+                plus_sig = np.append(plus_sig, results_data[4])
+                plus_2sig = np.append(plus_2sig, results_data[5])
+                
+                f = TFile.Open("histos/"+signal_file)
+                h = f.Get(limit_var)
+                entries = h.GetEntries()
+                cmd_append = "event_file = open(\"events_%s%s%s_%s.txt\", \"a\")" %(model,args.mass_MA, limit_var, scale_str)
+                exec(cmd_append)
+                event_file.write("%s\t\t%s\t\t%s\t\t\t%s\t\t\t%s\n" %(f.GetName(), limit_var, entries,str(results_data[0]), len(mZ)))
                                      
-            event_file.close()
+                event_file.close()
+
+            cmd_rmAuto = "rm -f auto_%s.txt" % filename
+            os.system(cmd_rmAuto)
 
     
     
@@ -209,6 +337,13 @@ def main():
     #scale cross section by conversion factor
     xsec_scale = PBtoFB * xsec_original
 
+    #write all the data into a file while it's still in mu form
+    cmd_append = "event_file = open(\"events_%s%s%s_%s.txt\", \"a\")" %(model,args.mass_MA, limit_var, scale_str)
+    exec(cmd_append)
+    event_file.write("\n\n\nThe following are the values of mu:")
+    event_file.write("\nMass Z':\t" + str(list_of_limits))
+    event_file.write("\nObserved Limit:\t" + str(obs_limit) + "\nExpected Limit:\t" + str(expect_limit) + "\n-2sigma:\t" + str(minus_2sig) + "\n-sigma:\t\t" + str(minus_sig) + "\n+sigma:\t\t" + str(plus_sig) + "\n+2sigma:\t" + str(plus_2sig))
+    event_file.close()
     
     #scale all limits by by the cross section
     obs_limit = xsec_scale * obs_limit
@@ -218,6 +353,15 @@ def main():
     minus_sig =xsec_scale * minus_sig
     minus_2sig = xsec_scale *minus_2sig
 
+
+    #write all this data back into the events file now that it's set as a limit
+    cmd_append = "event_file = open(\"events_%s%s%s_%s.txt\", \"a\")" %(model,args.mass_MA, limit_var, scale_str)
+    exec(cmd_append)
+    event_file.write("\n\n\nThe following are the values of the upper limit")
+    event_file.write("\nMass Z':\t" + str(list_of_limits))
+    event_file.write("\nObserved Limit:\t" + str(obs_limit) + "\nExpected Limit:\t" + str(expect_limit) + "\n-2sigma:\t" + str(minus_2sig) + "\n-sigma:\t\t" + str(minus_sig) + "\n+sigma:\t\t" + str(plus_sig) + "\n+2sigma:\t" + str(plus_2sig))
+    event_file.close()
+    
 
 #-----------------------------------STEP 5: make the limits plots----------------------------------------------
 
@@ -367,6 +511,20 @@ def main():
     #SAVE CANVAS TO LOCATION AND WITH EXTENSION OF YOUR CHOOSING
     c.SaveAs( plot_filename +".pdf")
     c.SaveAs( plot_filename +".root")
+
+
+
+    #Clean up directory system
+    os.system("mkdir -p event_yields")
+    
+    os.system("mv -f events_%s%s%s_%s.txt event_yields/" %(model,args.mass_MA,limit_var, scale_str))
+    os.system("mkdir -p limplots_pdf")
+    os.system("mkdir -p limplots_root")
+    os.system("mv -f *.cfg cfg_files")
+
+    os.system("mv %s.pdf limplots_pdf/" %plot_filename)
+    os.system("mv %s.root limplots_root/" %plot_filename)
+
     
 try:
     main()

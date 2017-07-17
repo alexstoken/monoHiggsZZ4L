@@ -1,24 +1,7 @@
 #!/usr/bin/env python
 #--------------------------------
 """
-this program will create TChains, run a MakeClass macro on those TChains, and then produce a TStack from the histograms output from the MakeClass. 
-
-To run: ./makeChains.py
-
-MUST HAVE muAnalysis.C and muAnalysis.h in the same directory to successfully run the script
-
-
-Program build for trees in a format similar to "HZZ4LeptonsAnalysisReduced", but can be modified to support other tree formats
-
-Outline: 1. Create TChains to loop over and variables of interest to plot
-         2. Generate yield for each chain (each chain is a different bkg/signal/model
-         3. Collect all histograms made by the makeClass running on the chain and put them in one file using hadd
-         4. Loop over each histogram individually and set its style properties
-         5. Add histograms to the THStacks, add the THStacks to the canvas, and modify histogram properties (axis labels, rebinning, etc).
-            *NOTE WHEN MODIFYING HISTOGRAM PROPERTIES: modify the property of the THStack since it is the base plot that the other plots are 
-                                                       drawn on top of. So modifications to THStack will persist. 
-         6. Format the canvas with such things as legend, log scale, text boxes
-         7. Save the canvas/histogram as both root and pdf files
+this program will create TChains, run a MakeClass macro on those TChains, and then produce a TStack from the histograms output from the MakeClass
 """
 
 import os, sys, re
@@ -27,7 +10,7 @@ from string import *
 from time import sleep 
 
 
-#runs makeClass called muAnalsis.C on the TChain features, passes in the chain and the chain's title
+#runs makeClass called muAnalsis.C on the Tchain features, passes in the chain and the chain's title
 def run(chain):
     gROOT.ProcessLine(".L muAnalysis.C")
     
@@ -61,21 +44,14 @@ def main():
 
     #create a list of the different variables you want to plot (see muAnalysis to see which variables have been filled)
 
-    #list is in the format (variable, n_rebins desired, X axis title with Latex support, units with latex support)
-    variable_list = [
-        ("massjj", 2, "Mass_{jj}", "GeV/c^2"),
-        ("deltajj", 2, "#Delta#eta_{jj}", "units"),
-        ("D", 2, "Discriminant", "units"),
-        ("mass4l", 2, "Mass_{4l}", "GeV/c^2"),
-        ("pt4l", 2, "PT_{4l}", "GeV/c"),
-        ("pfmet", 2,"PF_{MET}", "GeV")
-        ]
+    #list is in the format (variable, n_rebins desired)
+    variable_list = [ ("massjj", 2), ("deltajj", 2), ("D", 2), ("mass4l", 2),("pt4l", 2), ("pfmet", 2)]
     """TODO: create a way to send to makeClass which variables to plot from python script"""
 
 
     #create list of all the types of physics objects (data, types of backgrounds, models, etc) you intend to plot
 
-    #this list has tuples in the format (chain title, files chain is produced from, color for plotting, title for legend)
+    #this list has tuples in the format (chain title, files chain is produced from, color for plotting)
 
     #CAERFULLY SELECT WILDCARDS
     chain_list = [
@@ -92,7 +68,7 @@ def main():
         ("VBF","output_*_VBF*" , kOrange -6, "VBF, m_{H} =125 GeV/c^2"),
         ("ttH","output_*_ttH*" , kOrange, "ttH"),
         ("ggH", "output_*_GluGluHToZZTo4L*", kOrange -3, "ggH, m_{H} =125 GeV/c^2"),
-        ("mzChi1", "output_*_*_MChi-1_*", kBlue+2, "Z_p to m_{#Chi}"),
+        ("mzChi1", "output_*_MChi-1_*", kBlue+2, "Z_p to m_{Chi}"),
         ("ZZ", "output_*_ZZTo*", kCyan -7, "ZZ"),
         ("ggToZZ", "output_*_GluGluToContinToZZT*", kCyan -5, "ggToZZ"),
         ("mz600","output_*_Zprime*600*" , kGreen -4, "m_{z} = 600 GeV/c^2, m_{A_{0}} = 300 GeV/c^2"),
@@ -158,7 +134,7 @@ def main():
         
 
 
- #-----------------------------------------------------------------------------STEP 4: Style the histograms individually--------------------------------------------------------------------------
+ #-----------------------------------------------------------------------------STEP 4: Style the histograms --------------------------------------------------------------------------
 
     #loop over all the chains of histos created
     for chain, file_, color, title in chain_list:
@@ -214,13 +190,13 @@ def main():
 #--------------------------STEP 5: Add histos to stacks, Draw the histograms into canvases and modift histogram properties (axis titles, axis limits, rebin etc) ----------
 
     #loop over each variable you want to plot, so that a stack can be made for each variable independently
-    for variable, nrebin, axis, unit in variable_list:
+    for variable, nrebin in variable_list:
         #create a canvas to plot all the variable info 
         c = TCanvas()
        
 
         #initialize legend here so that you can add entries to it as you add entries to the canvas
-        legend = TLegend(0.901,0.1,.999,.9, "","brNDC")
+        legend = TLegend(0.901,0.1,1,.9, "","brNDC")
        
 
         #initialize THStacks for each of the variabels you've plotted so each variable has it's own stack, of name "variable_stack"
@@ -276,34 +252,16 @@ def main():
                         exec(cmd_addLegend)
 
      
-        #must draw stacks to the canvas before the models and data are drawn
+        #must draw stacks to the canvas before models
         c.cd()             
-        cmd_drawS = "%s_stack.Draw(\"hist\")" %variable   #use option hist in Drraw() to draw in histogram mode 
+        cmd_drawS = "%s_stack.Draw(\"hist\")" %variable   #use option hist in draw to draw in histogram mode 
         exec(cmd_drawS)
 
         #set axis titles
-        cmd_Xaxis = "%s_stack.GetXaxis().SetTitle(\"%s\")" % (variable, axis)
+        cmd_Xaxis = "%s_stack.GetXaxis().SetTitle(\"%s\")" % (variable, variable)
+        cmd_Yaxis = "%s_stack.GetYaxis().SetTitle(\"Events\")" % (variable)
+        #cmd_Yaxis = "%s_stack.GetYaxis().SetTitle(\"Events/%s GeV\")" % (variable, str(10))
         exec(cmd_Xaxis)
-        
-        #to properly set Y axis title, must compute number of events per given unit
-        cmd_Xmax = "x_max = %s_stack.GetXaxis().GetXmax()" %variable
-        exec(cmd_Xmax)
-
-        cmd_Nbins = "nbins = %s_stack.GetHistogram().GetNbinsX()" %variable
-        exec(cmd_Nbins)
-
-        #to find per bin number
-        per_bin = x_max / nbins
-
-        if nrebin != 0:
-            per_bin = per_bin * nrebin
-
-      
-
-        
-       
-        cmd_Yaxis = "%s_stack.GetYaxis().SetTitle(\"Events/ %s %s\")" % (variable, str(per_bin), unit)
-     
         exec(cmd_Yaxis)
 
         
@@ -341,7 +299,7 @@ def main():
                 if (variable == "pfmet" or variable == "pt4l"):
                     #draws the data
                     if hist_name.find("data_2016") != -1:
-                        cmd_drawD = "%s.Draw(\"hist same E1PX0\")" % (hist_name)
+                        cmd_drawD = "%s.Draw(\"hist same PX0\")" % (hist_name)
                         exec(cmd_drawD)
                         cmd_addLegend = "legend.AddEntry(h, \"%s\")" %legend_name
                         exec(cmd_addLegend)
@@ -397,7 +355,7 @@ def main():
     
         #for a more advanced and professionally formatted legend, adjust here
       
-        legend.SetTextSize(0.025)
+        legend.SetTextSize(0.040)
         legend.SetLineColor(0)
         legend.SetLineWidth(1)
         legend.SetFillColor(kWhite)
@@ -407,10 +365,11 @@ def main():
         
         
         #prints the histograms to the screen, optional if you do not want to see the histos
- 
+        c.SetCanvasSize(700, 700)
+        c.SetWindowSize(800, 800)
         c.Update()    
         gSystem.ProcessEvents()
-        sleep(5)
+        sleep(1)
 
 
         #save the final plots (on their canvas) as both .root and .pdf files 

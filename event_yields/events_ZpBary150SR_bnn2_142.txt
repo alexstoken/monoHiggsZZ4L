@@ -1,0 +1,28 @@
+File							Variable	Entries			UpperLimit		Num of Limits
+histos/histos_data.root					SR_bnn2		143.0
+histos/histos_SM.root					SR_bnn2		323592.0
+histos/histos_ZpBary_MZp00200_MA00150.root		SR_bnn2		7507.0			5002.518			1
+histos/histos_ZpBary_MZp00295_MA00150.root		SR_bnn2		7235.0			123.564			2
+histos/histos_ZpBary_MZp00500_MA00150.root		SR_bnn2		7492.0			2.363			3
+histos/histos_ZpBary_MZp01000_MA00150.root		SR_bnn2		8335.0			74.141			4
+
+
+
+The following are the values of mu:
+Mass Z':	['00200', '00295', '00500', '01000']
+Observed Limit:	[  5.00251800e+03   1.23564000e+02   2.36300000e+00   7.41410000e+01]
+Expected Limit:	[  8.14566800e+03   2.01341000e+02   3.76800000e+00   1.19025000e+02]
+-2sigma:	[  4.86158000e+03   1.17875000e+02   2.28100000e+00   6.46130000e+01]
+-sigma:		[  6.21331100e+03   1.54417000e+02   2.90700000e+00   8.90530000e+01]
++sigma:		[  1.20783050e+04   2.97995000e+02   5.68900000e+00   1.74726000e+02]
++2sigma:	[  1.52937020e+04   3.74899000e+02   7.19800000e+00   2.11956000e+02]
+
+
+The following are the values of the upper limit
+Mass Z':	['00200', '00295', '00500', '01000']
+Observed Limit:	[ 4.37960953  4.54142668  0.44090027  3.98915085]
+Expected Limit:	[ 7.13137767  7.40001448  0.70305214  6.40413104]
+-2sigma:	[ 4.25622098  4.33233522  0.4256003   3.47649753]
+-sigma:		[ 5.43963581  5.67538671  0.54240249  4.79148987]
++sigma:		[ 10.5743267   10.95240072   1.06148185   9.40111909]
++2sigma:	[ 13.38934572  13.7789026    1.34303856  11.4042764 ]

@@ -25,9 +25,10 @@ def main():
         for var in limit_var:
             for MA in massMA:
 
-                filename = "lim"+ model+str(MA)+var
+                if var == "SR_met": filename = "lim"+ model+str(MA)+var+"_sf42"
+                else: filename = "lim"+ model+str(MA)+var
                 print filename
-                cmd_runLim = "./makeLimitPlots.py %s %s %s %s" %(model, var, str(MA), filename)
+                cmd_runLim = "./makeLimitPlots.py %s %s %s %s -sf 1.42" %(model, var, str(MA), filename)
                 os.system(cmd_runLim)
                 count +=1
 

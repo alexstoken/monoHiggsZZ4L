@@ -1,0 +1,7 @@
+File							Variable	Entries			UpperLimit		Num of Limits
+histos/histos_data.root					SR_pt4l		143.0
+histos/histos_SM.root					SR_pt4l		323592.0
+histos/histos_ZpBary_MZp00050_MA00050.root		SR_pt4l		6197.0			37.004			1
+histos/histos_ZpBary_MZp00095_MA00050.root		SR_pt4l		6104.0			23.105			2
+histos/histos_ZpBary_MZp00200_MA00050.root		SR_pt4l		6516.0			4.411			3
+histos/histos_ZpBary_MZp00300_MA00050.root		SR_pt4l		6444.0			4.82			4
